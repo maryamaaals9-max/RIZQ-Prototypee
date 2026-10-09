@@ -1,281 +1,1010 @@
-import io
-import math
-from datetime import date
+
+import streamlit as st
 import pandas as pd
 import plotly.express as px
-import streamlit as st
+from pathlib import Path
+from datetime import date
 
-st.set_page_config(page_title="RIZQ | Climate Retrofit Intelligence", page_icon="🌿", layout="wide", initial_sidebar_state="expanded")
+# ==========================================
+# RIZQ — CLIMATE RETROFIT INTELLIGENCE
+# Academic Research Prototype
+# ==========================================
 
-st.markdown('''<style>
+st.set_page_config(
+    page_title="RIZQ | Climate Retrofit Intelligence",
+    page_icon="🌿",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+ASSETS = Path(__file__).resolve().parent / "assets"
+
+# ==========================================
+# DESIGN SYSTEM
+# ==========================================
+
+st.markdown("""
+<style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-html,body,[class*="css"], [data-testid="stApp"] {font-family:'DM Sans',sans-serif;}
-[data-testid="stAppViewContainer"] {background:#f5f9f7;}
-[data-testid="stHeader"] {background:#ffffffed;}
-[data-testid="stMainBlockContainer"] {padding-top:2rem;}
-[data-testid="stVerticalBlockBorderWrapper"] > div {border-radius:17px;}
-.stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] button[kind="primary"] {background:#167755;border:0;border-radius:12px;font-weight:700;}
-[data-testid="stDataFrame"] {border-radius:14px;overflow:hidden;}
-[data-testid="stSidebar"] {background:#102b34;}
-[data-testid="stSidebar"] * {color:#e7f5ed !important;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {background:#1b5547;border-radius:10px;}
-h1,h2,h3 {color:#14382f;letter-spacing:-.025em;}
-.hero {background:linear-gradient(110deg,#102d36 0%,#185748 65%,#398567 100%);color:#fff;border-radius:22px;padding:32px 38px;margin-bottom:22px;box-shadow:0 10px 25px #173d3020;}
-.hero .eyebrow {font-size:12px;font-weight:800;letter-spacing:2px;color:#b5e6c6;}
-.hero h1 {color:#fff;font-size:46px;margin:7px 0 5px;}
-.hero p {font-size:16px;color:#d8efe4;margin:0;}
-.chip {display:inline-block;background:#ffffff20;border:1px solid #ffffff45;border-radius:20px;padding:6px 12px;margin:17px 7px 0 0;font-size:12px;}
-.note {background:#e6f4ee;border:1px solid #c4e5d3;color:#215747;border-radius:12px;padding:13px 17px;margin:10px 0 22px;font-size:13px;}
-.score {background:#102d36;border-radius:20px;padding:25px;color:white;}
-.score strong {font-size:64px;color:#a7dfb2;}
-.score h3 {color:white;}
-.small {color:#657b74;font-size:13px;}
-[data-testid="stMetric"] {background:white;padding:17px;border:1px solid #e0eae5;border-radius:15px;}
-[data-testid="stMetricValue"] {color:#135c43;}
-</style>''', unsafe_allow_html=True)
 
-st.markdown('\n<style>\n[data-testid="stAppViewContainer"]{background:linear-gradient(180deg,#f7fbff 0%,#f3faf7 100%)!important}\n[data-testid="stSidebar"]{background:#fff!important;border-right:1px solid #dbe9e7!important}\n[data-testid="stSidebar"] *{color:#17444c!important}\n[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){background:#e2f5ee!important}\n[data-testid="stSidebar"] div[role="radiogroup"] label:hover{background:#f1f7fb;border-radius:10px}\n[data-testid="stMetric"]{border:1px solid #dcebe7!important;box-shadow:0 6px 24px #164f4510;min-height:114px}\n[data-testid="stMetricValue"]{font-size:clamp(20px,2.4vw,32px)!important;overflow-wrap:anywhere}\n[data-testid="stMetricLabel"]{color:#537780!important}\n[data-testid="stMainBlockContainer"]{max-width:1380px;padding-top:1.3rem}\nh1,h2,h3{color:#143e4b!important}\n.visual-hero{min-height:300px;background:#e6f5ef;border:1px solid #d3e8e3;border-radius:26px;display:grid;grid-template-columns:1.05fr .95fr;overflow:hidden;margin-bottom:20px;box-shadow:0 14px 42px #1c6d6020}\n.visual-hero-text{padding:35px 30px 32px 40px;position:relative;z-index:1}\n.visual-hero .eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#168567}\n.visual-hero h1{font-size:64px;line-height:1.05;color:#134f49!important;margin:15px 0 10px}\n.visual-hero p{font-size:21px;font-weight:700;color:#153f4a;margin:0 0 8px;max-width:520px}\n.hero-sub{color:#517477;font-size:14px}\n.hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}\n.hero-tags span{background:#fff;border:1px solid #c5e3d8;border-radius:24px;padding:7px 10px;font-size:11px;color:#226e62;font-weight:700}\n.visual-hero-image{background-position:center;background-size:cover;min-height:300px}\n.feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:18px 0 24px}\n.feature-card{background:white;border:1px solid #deebe8;border-radius:19px;overflow:hidden;box-shadow:0 6px 25px #124a4410}\n.feature-card img{width:100%;height:146px;object-fit:cover;display:block}\n.feature-card .fc-body{padding:14px 16px 18px}\n.feature-card strong{font-size:16px;color:#164a50}\n.feature-card p{font-size:12px;color:#648086;line-height:1.5;margin:6px 0 0}\n.note{background:#edf8f2!important;border-color:#cce8da!important;color:#2b6654!important}\n@media(max-width:800px){.visual-hero{grid-template-columns:1fr}.visual-hero-text{padding:24px}.visual-hero h1{font-size:48px}.visual-hero-image{min-height:190px}.feature-grid{grid-template-columns:1fr}}\n</style>\n',unsafe_allow_html=True)
+html, body, [class*="css"] {
+    font-family: 'DM Sans', sans-serif;
+}
 
-SAMPLE = [
- dict(id="RZQ-001",name="Al Noor Residence",kind="Residential apartment",age=18,kwh=8600,roof="Dark / high heat absorption",heat="High",flood="Medium",insulation="Poor",occupants=45,area=410,status="Assessed",funded=0,worker="",verified=False,post_kwh=0,score=92),
- dict(id="RZQ-002",name="Block C Housing",kind="Residential apartment",age=15,kwh=6800,roof="Dark / high heat absorption",heat="High",flood="Low",insulation="Poor",occupants=32,area=330,status="Funding approved",funded=84000,worker="Aisha Rahman",verified=False,post_kwh=0,score=86),
- dict(id="RZQ-003",name="Al Amal Building",kind="Mixed use",age=12,kwh=5700,roof="Moderate",heat="Medium",flood="Medium",insulation="Average",occupants=27,area=290,status="Worker assigned",funded=73000,worker="Omar Khalid",verified=False,post_kwh=0,score=81),
- dict(id="RZQ-004",name="Al Safa Villas",kind="Residential villa",age=4,kwh=1900,roof="Reflective / cool roof",heat="Low",flood="Low",insulation="Good",occupants=6,area=180,status="Verified",funded=29000,worker="Sara Ahmed",verified=True,post_kwh=1520,score=28),
+[data-testid="stAppViewContainer"] {
+    background: #f4f8f6;
+}
+
+[data-testid="stSidebar"] {
+    background: #102b34;
+}
+
+[data-testid="stSidebar"] * {
+    color: #f1fff9 !important;
+}
+
+h1, h2, h3 {
+    color: #153c34;
+}
+
+.hero {
+    padding: 44px 38px;
+    border-radius: 24px;
+    background: linear-gradient(115deg, #102b34, #185a48, #378c68);
+    color: white;
+    margin-bottom: 24px;
+}
+
+.hero h1 {
+    color: white;
+    font-size: 52px;
+    margin: 8px 0;
+    font-weight: 800;
+}
+
+.hero p {
+    color: #e2fff0;
+    font-size: 17px;
+}
+
+.eyebrow {
+    color: #b9f7d4;
+    letter-spacing: 2px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.chip {
+    display: inline-block;
+    border: 1px solid #a2d8bf;
+    padding: 8px 12px;
+    margin: 8px 6px 0 0;
+    border-radius: 24px;
+    font-size: 12px;
+    color: white;
+}
+
+.notice {
+    background: #e3f3eb;
+    border: 1px solid #b9dfcc;
+    color: #17533e;
+    padding: 16px;
+    border-radius: 14px;
+    margin: 12px 0 24px 0;
+}
+
+.section-note {
+    color: #637e73;
+    margin-bottom: 18px;
+}
+
+[data-testid="stMetric"] {
+    background: white;
+    border: 1px solid #e0ebe5;
+    border-radius: 16px;
+    padding: 18px;
+}
+
+[data-testid="stMetricValue"] {
+    color: #176a4d;
+}
+
+.stButton > button[kind="primary"] {
+    background: #176a4d;
+    border-color: #176a4d;
+}
+
+div[data-testid="stDataFrame"] {
+    border-radius: 14px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# SAMPLE DATA
+# ==========================================
+
+DEFAULT_BUILDINGS = [
+    {
+        "Building": "Al Noor Residential Tower",
+        "Type": "Residential",
+        "Area": 18000,
+        "Energy": 3600000,
+        "Age": 22,
+        "Budget": 1800000,
+        "Solar": True,
+        "Status": "Assessment ready"
+    },
+    {
+        "Building": "Green Horizon School",
+        "Type": "Education",
+        "Area": 9200,
+        "Energy": 1550000,
+        "Age": 18,
+        "Budget": 950000,
+        "Solar": True,
+        "Status": "Assessment ready"
+    },
+    {
+        "Building": "Central Business Plaza",
+        "Type": "Commercial",
+        "Area": 24000,
+        "Energy": 5500000,
+        "Age": 28,
+        "Budget": 2900000,
+        "Solar": False,
+        "Status": "Assessment ready"
+    },
+    {
+        "Building": "Community Health Center",
+        "Type": "Healthcare",
+        "Area": 6500,
+        "Energy": 1150000,
+        "Age": 14,
+        "Budget": 750000,
+        "Solar": True,
+        "Status": "Assessment ready"
+    }
 ]
-WORKERS = [dict(name="Aisha Rahman",skill="Roof insulation",certified=True),dict(name="Omar Khalid",skill="Solar PV",certified=True),dict(name="Sara Ahmed",skill="Efficient cooling",certified=True),dict(name="Trainee Demo",skill="General support",certified=False)]
 
-if "buildings" not in st.session_state: st.session_state.buildings=[dict(x) for x in SAMPLE]
-if "funds" not in st.session_state: st.session_state.funds={"City climate budget":600000.0,"Corporate ESG":400000.0,"NGO grants":250000.0}
-if "evidence" not in st.session_state: st.session_state.evidence={}
-if "last_assessment" not in st.session_state: st.session_state.last_assessment=None
+if "buildings" not in st.session_state:
+    st.session_state.buildings = DEFAULT_BUILDINGS.copy()
+
+if "projects" not in st.session_state:
+    st.session_state.projects = []
+
+if "workers" not in st.session_state:
+    st.session_state.workers = [
+        {"Name": "Worker A", "Skill": "Solar PV", "Available": True},
+        {"Name": "Worker B", "Skill": "HVAC", "Available": True},
+        {"Name": "Worker C", "Skill": "Energy Auditing", "Available": True}
+    ]
 
 
-def clamp(v):return max(0,min(100,float(v)))
-def assess(b):
-    heat={"Low":20,"Medium":60,"High":100}[b["heat"]]
-    flood={"Low":10,"Medium":55,"High":100}[b["flood"]]
-    climate=.7*heat+.3*flood
-    energy=clamp(100*b["kwh"]/8500*.75+min(b["age"]*1.3,25))
-    roof={"Reflective / cool roof":20,"Moderate":55,"Dark / high heat absorption":95}[b["roof"]]
-    ins={"Good":15,"Average":55,"Poor":100}[b["insulation"]]
-    suitability=.55*roof+.45*ins
-    effectiveness=clamp(30+0.4*energy+0.3*suitability)
-    social=clamp(b["occupants"]*1.8+20)
-    factors={"Climate vulnerability":climate,"Energy need":energy,"Retrofit suitability":suitability,"Financial efficiency (proxy)":effectiveness,"Social impact":social}
-    weights={"Climate vulnerability":.30,"Energy need":.25,"Retrofit suitability":.20,"Financial efficiency (proxy)":.15,"Social impact":.10}
-    score=round(sum(factors[k]*weights[k] for k in weights))
-    recommendations=[]
-    if b["roof"]=="Dark / high heat absorption":recommendations.append("Reflective roof coating")
-    if b["insulation"]!="Good":recommendations.append("Roof insulation")
-    if b["kwh"]>=4000:recommendations.append("Efficient cooling upgrade")
-    if b["area"]>=150 and b["kwh"]>=3000:recommendations.append("Solar PV feasibility review")
-    if not recommendations:recommendations=["Energy audit and smart controls"]
-    estimated_cost=round(7500+120*b["area"]+min(b["kwh"]*2.5,18000),-2)
-    saving_fraction=min(.35,.08+.000014*b["kwh"]+.045*(b["insulation"]=="Poor")+.035*(b["roof"]=="Dark / high heat absorption"))
-    annual_kwh=round(b["kwh"]*12*saving_fraction)
-    # Illustrative only: 0.4 kg CO2/kWh; AED 0.30/kWh.
-    return dict(score=score,factors=factors,weights=weights,recommendations=recommendations,cost=int(estimated_cost),annual_kwh=annual_kwh,annual_co2_t=round(annual_kwh*.0004,2),annual_aed=round(annual_kwh*.30),saving_pct=round(saving_fraction*100,1))
+# ==========================================
+# HELPERS
+# ==========================================
 
-for _building in st.session_state.buildings:
-    _building["score"] = assess(_building)["score"]
+def show_image(filename, caption=None):
+    path = ASSETS / filename
+    if path.exists() and path.stat().st_size > 20:
+        try:
+            st.image(str(path), use_container_width=True)
+        except Exception:
+            st.info(f"Image could not be displayed: {filename}")
+    else:
+        st.info(f"Image not found or empty: assets/{filename}")
 
-def label(b):return f'{b["id"]} — {b["name"]}'
-def get_building(key):return next(x for x in st.session_state.buildings if x["id"]==key)
-def money(n):return f'AED {n:,.0f}'
-def notice():st.markdown('<div class="note">🧪 <b>ACADEMIC RESEARCH PROTOTYPE</b> — All building records, budgets, workers, scores and impact estimates are simulated. No real financing, professional certification, meter integration or accredited verification. The explainable decision engine is rule-based, not a trained AI model.</div>',unsafe_allow_html=True)
+    if caption:
+        st.caption(caption)
+
+
+def calculate_assessment(building):
+    area = max(float(building["Area"]), 1)
+    energy = max(float(building["Energy"]), 0)
+    age = max(int(building["Age"]), 0)
+
+    intensity = energy / area
+
+    # Illustrative rules, not a trained AI model
+    intensity_score = min(intensity / 350, 1) * 45
+    age_score = min(age / 35, 1) * 25
+    solar_score = 15 if building["Solar"] else 5
+    budget_score = min(building["Budget"] / 2500000, 1) * 15
+
+    priority = round(
+        intensity_score + age_score +
+        solar_score + budget_score, 1
+    )
+
+    if intensity >= 230:
+        saving_rate = 0.30
+    elif intensity >= 160:
+        saving_rate = 0.23
+    else:
+        saving_rate = 0.15
+
+    annual_saving = energy * saving_rate
+
+    # Illustrative emission factor only
+    emission_factor = 0.40
+    avoided_tonnes = annual_saving * emission_factor / 1000
+
+    return {
+        "Priority": priority,
+        "Intensity": round(intensity, 1),
+        "SavingRate": saving_rate,
+        "EnergySaved": round(annual_saving),
+        "CO2Avoided": round(avoided_tonnes, 1)
+    }
+
+
+def assessment_table():
+    records = []
+
+    for building in st.session_state.buildings:
+        result = calculate_assessment(building)
+
+        records.append({
+            "Building": building["Building"],
+            "Type": building["Type"],
+            "Priority score": result["Priority"],
+            "Energy intensity": result["Intensity"],
+            "Potential savings (kWh/year)": result["EnergySaved"],
+            "Estimated CO2 avoided (t/year)": result["CO2Avoided"]
+        })
+
+    return pd.DataFrame(records).sort_values(
+        "Priority score",
+        ascending=False
+    )
+
+
+def money(value):
+    return f"AED {value:,.0f}"
+
+
+# ==========================================
+# SIDEBAR
+# ==========================================
 
 with st.sidebar:
     st.markdown("## 🌿 RIZQ")
     st.caption("CLIMATE RETROFIT INTELLIGENCE")
     st.write("Prioritize buildings. Fund upgrades. Verify impact.")
-    page=st.radio("Explore the platform",["Command Center","Add Building","AI-Assisted Assessment","Funding Studio","Green Jobs & Workers","Impact Verification","Projects & Reports","Methodology & Testing"],label_visibility="collapsed")
+
+    page = st.radio(
+        "Explore the platform",
+        [
+            "Command Center",
+            "Add Building",
+            "AI-Assisted Assessment",
+            "Funding Studio",
+            "Green Jobs & Workers",
+            "Impact Verification",
+            "Projects & Reports",
+            "Methodology & Testing"
+        ]
+    )
+
     st.divider()
     st.caption("INT305 • Software Engineering")
-    st.caption("Session-only demonstration • synthetic data")
+    st.caption("Academic prototype • Synthetic data")
+    st.caption("Session-only demonstration")
 
-st.markdown("""<div class="visual-hero"><div class="visual-hero-text"><div class="eyebrow">SUSTAINABLE CITIES · SMART FUNDING · GREEN JOBS</div><h1>RIZQ</h1><p>Building a greener future, one retrofit at a time.</p><div class="hero-sub">AI-Assisted Climate Retrofit Funding & Green Jobs Platform</div><div class="hero-tags"><span>✦ Explainable prioritization</span><span>✦ Blended finance</span><span>✦ Impact verification</span></div></div><div class="visual-hero-image" style="background-image:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2Q4ZjVlZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2VmZjlmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iMTA1IiB5PSIxNjAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMjU1IiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSIxMTgiIHk9IjE3NCIgd2lkdGg9IjE0OSIgaGVpZ2h0PSIyMjciIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9IjEyNyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjEyNyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjMxOCIgeT0iMTA1IiB3aWR0aD0iMjA1IiBoZWlnaHQ9IjMxMCIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iMzMxIiB5PSIxMTkiIHdpZHRoPSIxNzkiIGhlaWdodD0iMjgyIiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSIzNDAiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMTMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjE3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIyMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMjU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjMwMSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIzNDMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMzg1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU2MCIgeT0iMjA1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjIwNSIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iNTczIiB5PSIyMTkiIHdpZHRoPSIxMzQiIGhlaWdodD0iMTc3IiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSI1ODIiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNTgyIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU4MiIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI1ODIiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIyMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjYxOCIgeT0iMjc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2MTgiIHk9IjMxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIzNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMjMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2NTQiIHk9IjI3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjU0IiB5PSIzMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMzU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjkwIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY5MCIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzQ1IiB5PSIxNTUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjYwIiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSI3NTgiIHk9IjE2OSIgd2lkdGg9IjEyNCIgaGVpZ2h0PSIyMzIiIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9Ijc2NyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijc2NyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxwYXRoIGQ9Ik05MCAxNTcgTDE5NSAxMTcgTDI5OCAxNTciIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMDQgMTAxIEw0MjAgNjIgTDUzNSAxMDEiIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==')"></div></div>""", unsafe_allow_html=True)
-notice()
 
-if page=="Command Center":
-    st.header("Climate Retrofit Command Center")
-    st.markdown("""<div class="feature-grid"><div class="feature-card"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2Q1ZjJlYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Y5ZmNmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iMTA1IiB5PSIxNjAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMjU1IiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSIxMTgiIHk9IjE3NCIgd2lkdGg9IjE0OSIgaGVpZ2h0PSIyMjciIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9IjEyNyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjEyNyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjMxOCIgeT0iMTA1IiB3aWR0aD0iMjA1IiBoZWlnaHQ9IjMxMCIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iMzMxIiB5PSIxMTkiIHdpZHRoPSIxNzkiIGhlaWdodD0iMjgyIiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSIzNDAiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMTMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjE3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIyMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMjU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjMwMSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIzNDMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMzg1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU2MCIgeT0iMjA1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjIwNSIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iNTczIiB5PSIyMTkiIHdpZHRoPSIxMzQiIGhlaWdodD0iMTc3IiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSI1ODIiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNTgyIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU4MiIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI1ODIiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIyMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjYxOCIgeT0iMjc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2MTgiIHk9IjMxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIzNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMjMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2NTQiIHk9IjI3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjU0IiB5PSIzMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMzU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjkwIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY5MCIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzQ1IiB5PSIxNTUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjYwIiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSI3NTgiIHk9IjE2OSIgd2lkdGg9IjEyNCIgaGVpZ2h0PSIyMzIiIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9Ijc2NyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijc2NyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxwYXRoIGQ9Ik05MCAxNTcgTDE5NSAxMTcgTDI5OCAxNTciIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMDQgMTAxIEw0MjAgNjIgTDUzNSAxMDEiIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik02MCA0NDIgUTI3MCAzNzIgNDcwIDQ0MCBUMTAwMCA0MzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkOGQ2ZCIgc3Ryb2tlLXdpZHRoPSIxMyIvPjxyZWN0IHg9Ijc1IiB5PSIzOTUiIHdpZHRoPSIxNCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzc3NjE0YyIvPjxjaXJjbGUgY3g9IjgzIiBjeT0iMzgzIiByPSI0MyIgZmlsbD0iIzFmOWU3MiIvPjxyZWN0IHg9IjkyNSIgeT0iMzk3IiB3aWR0aD0iMTQiIGhlaWdodD0iNjUiIGZpbGw9IiM3NzYxNGMiLz48Y2lyY2xlIGN4PSI5MzMiIGN5PSIzODUiIHI9IjQzIiBmaWxsPSIjMWY5ZTcyIi8+PHJlY3QgeD0iMzI1IiB5PSIyMTgiIHdpZHRoPSIzNDUiIGhlaWdodD0iMjE1IiByeD0iOCIgZmlsbD0iI2YxZjdlZSIvPjxwYXRoIGQ9Ik0yODUgMjE4IEw0OTUgOTQgTDcxMCAyMTgiIGZpbGw9IiMyNjc3NmQiLz48cGF0aCBkPSJNNDA1IDE2MiBMNTUwIDE2MiBMNTk1IDIwMyBMNDU1IDIwM1oiIGZpbGw9IiMyYTcxOTAiIHN0cm9rZT0iI2I0ZWFmMiIgc3Ryb2tlLXdpZHRoPSI3Ii8+PHJlY3QgeD0iNDcwIiB5PSIzMTAiIHdpZHRoPSI3NSIgaGVpZ2h0PSIxMjMiIGZpbGw9IiM3N2I2YjYiLz48L3N2Zz4=" alt="Sustainable building illustration"><div class="fc-body"><strong>Building Retrofit</strong><p>Identify high-impact upgrades for healthier, energy-efficient buildings.</p></div></div><div class="feature-card"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2I4ZTZmZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2VmZjlmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iMTI1IiB5PSIyMDUiIHdpZHRoPSI3NTUiIGhlaWdodD0iMjQwIiByeD0iMTgiIGZpbGw9IiNlZGY3ZjQiLz48cGF0aCBkPSJNOTAgMjE1IEw1MjAgMTAwIEw5MjAgMjE1IiBmaWxsPSIjMjY2Yjc2Ii8+PHBhdGggZD0iTTE4NSAyMTAgTDUxMCAxMjcgTDgyMyAyMTAiIGZpbGw9IiMxNjRkNmQiLz48cGF0aCBkPSJNMjU1IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTMzMiAxNjAgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik00MDkgMTYwIGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNDg2IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTU2MyAxNjAgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik02NDAgMTYwIGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNzE3IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTIzNSAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik0zMTIgMTk1IGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzg5IDE5NSBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTQ2NiAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik01NDMgMTk1IGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNjIwIDE5NSBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTY5NyAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxyZWN0IHg9IjIwMCIgeT0iMzE1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9IiM3YmJhYzAiLz48cmVjdCB4PSI2ODAiIHk9IjMxNSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSIjN2JiYWMwIi8+PC9zdmc+" alt="Solar energy illustration"><div class="fc-body"><strong>Smart Green Funding</strong><p>Explore transparent financing and sustainable energy improvements.</p></div></div><div class="feature-card"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2U0ZjRlNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Y4ZmNmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iOTUiIHk9IjI0NSIgd2lkdGg9IjgxMCIgaGVpZ2h0PSIyMTAiIHJ4PSIxOCIgZmlsbD0iI2QyZTdlMiIvPjxyZWN0IHg9IjE3MCIgeT0iMTY1IiB3aWR0aD0iNjQwIiBoZWlnaHQ9Ijk1IiByeD0iMTYiIGZpbGw9IiM2NWE2YWQiLz48Y2lyY2xlIGN4PSIzMTAiIGN5PSIyNDgiIHI9IjYyIiBmaWxsPSIjZTZhZDgwIi8+PHBhdGggZD0iTTIzMCAyNTAgUTMxMCAxNzUgMzkwIDI1MCIgZmlsbD0iI2Y2Yzk0OSIvPjxyZWN0IHg9IjIwNiIgeT0iMzEyIiB3aWR0aD0iMjA4IiBoZWlnaHQ9IjE4MiIgcng9Ijc1IiBmaWxsPSIjMWM2Zjc4Ii8+PHBhdGggZD0iTTI1OCAzNDggTDMxMCAzODUgTDM2MiAzNDgiIHN0cm9rZT0iI2U5ZjlmMiIgc3Ryb2tlLXdpZHRoPSIxNiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjU0MCIgY3k9IjI0OCIgcj0iNjIiIGZpbGw9IiNlNmFkODAiLz48cGF0aCBkPSJNNDYwIDI1MCBRNTQwIDE3NSA2MjAgMjUwIiBmaWxsPSIjZjZjOTQ5Ii8+PHJlY3QgeD0iNDM2IiB5PSIzMTIiIHdpZHRoPSIyMDgiIGhlaWdodD0iMTgyIiByeD0iNzUiIGZpbGw9IiMyNTdlNjkiLz48cGF0aCBkPSJNNDg4IDM0OCBMNTQwIDM4NSBMNTkyIDM0OCIgc3Ryb2tlPSIjZTlmOWYyIiBzdHJva2Utd2lkdGg9IjE2IiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Green jobs illustration"><div class="fc-body"><strong>Green Jobs & Impact</strong><p>Connect retrofit projects with skilled workers and track results.</p></div></div></div>""",unsafe_allow_html=True)
-    buildings=st.session_state.buildings
-    a,b,c,d=st.columns(4)
-    a.metric("Buildings assessed",len(buildings))
-    b.metric("Projects funded",sum(x["funded"]>0 for x in buildings))
-    c.metric("Available blended fund",money(sum(st.session_state.funds.values())))
-    d.metric("Green job assignments",sum(bool(x["worker"]) for x in buildings))
-    l,r=st.columns([1.2,1])
-    with l:
-        st.subheader("Highest priority buildings")
-        for x in sorted(buildings,key=lambda y:y["score"],reverse=True)[:6]:
-            with st.container(border=True):
-                u,v=st.columns([4,1]);u.markdown(f'**{x["name"]}**  \n<span class="small">{x["kind"]} • {x["status"]}</span>',unsafe_allow_html=True);v.metric("Priority",f'{x["score"]}/100')
-    with r:
-        st.subheader("Blended fund allocation")
-        funds=st.session_state.funds
-        df=pd.DataFrame({"Source":list(funds),"Available AED":list(funds.values())})
-        st.plotly_chart(px.pie(df,names="Source",values="Available AED",hole=.65,color_discrete_sequence=["#126c4b","#75bc87","#b4dec1"]),use_container_width=True)
-        st.caption("Illustrative available funding by partner type")
-    st.subheader("Project pipeline")
-    status=pd.Series([x["status"] for x in buildings]).value_counts().rename_axis("Status").reset_index(name="Projects")
-    st.plotly_chart(px.bar(status,x="Status",y="Projects",color="Status",color_discrete_sequence=["#0f6b4b","#54a37a","#95c9ac","#12333b"]),use_container_width=True)
+# ==========================================
+# HERO
+# ==========================================
 
-elif page=="Add Building":
-    st.markdown("""<div class="feature-card" style="margin-bottom:20px"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2Q1ZjJlYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Y5ZmNmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iMTA1IiB5PSIxNjAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMjU1IiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSIxMTgiIHk9IjE3NCIgd2lkdGg9IjE0OSIgaGVpZ2h0PSIyMjciIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9IjEyNyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjEyNyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxMjciIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTI3IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE2MyIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxNjMiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTYzIiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjE5OSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIxOTkiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMTk5IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMTg4IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjIzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIyNzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjIzNSIgeT0iMzE0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIyMzUiIHk9IjM1NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMjM1IiB5PSIzOTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjMxOCIgeT0iMTA1IiB3aWR0aD0iMjA1IiBoZWlnaHQ9IjMxMCIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iMzMxIiB5PSIxMTkiIHdpZHRoPSIxNzkiIGhlaWdodD0iMjgyIiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSIzNDAiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzQwIiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM0MCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNDAiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjM3NiIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSIzNzYiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iMzc2IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMTMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjE3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIyMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMjU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0MTIiIHk9IjMwMSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDEyIiB5PSIzNDMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQxMiIgeT0iMzg1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjEzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIxNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMjE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjI1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDQ4IiB5PSIzMDEiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ0OCIgeT0iMzQzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0NDgiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIxMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMTc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjIxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIyNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjQ4NCIgeT0iMzAxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI0ODQiIHk9IjM0MyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNDg0IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU2MCIgeT0iMjA1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjIwNSIgcng9IjkiIGZpbGw9InVybCgjZ2xhc3MpIi8+PHJlY3QgeD0iNTczIiB5PSIyMTkiIHdpZHRoPSIxMzQiIGhlaWdodD0iMTc3IiBmaWxsPSIjZTVmOWZhIiBvcGFjaXR5PSIuMTQiLz48cmVjdCB4PSI1ODIiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNTgyIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjU4MiIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI1ODIiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIyMzMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjYxOCIgeT0iMjc1IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2MTgiIHk9IjMxNyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjE4IiB5PSIzNTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMjMzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2NTQiIHk9IjI3NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjU0IiB5PSIzMTciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY1NCIgeT0iMzU5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjIzMyIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNjkwIiB5PSIyNzUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjY5MCIgeT0iMzE3IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI2OTAiIHk9IjM1OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzQ1IiB5PSIxNTUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjYwIiByeD0iOSIgZmlsbD0idXJsKCNnbGFzcykiLz48cmVjdCB4PSI3NTgiIHk9IjE2OSIgd2lkdGg9IjEyNCIgaGVpZ2h0PSIyMzIiIGZpbGw9IiNlNWY5ZmEiIG9wYWNpdHk9Ii4xNCIvPjxyZWN0IHg9Ijc2NyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijc2NyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI3NjciIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iNzY3IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgwMyIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MDMiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODAzIiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9IjgzOSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4MzkiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODM5IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMTgzIiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIyNjciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxyZWN0IHg9Ijg3NSIgeT0iMzA5IiB3aWR0aD0iMjIiIGhlaWdodD0iMjciIHJ4PSIzIiBmaWxsPSIjZDVmN2ZmIiBvcGFjaXR5PSIuNzciLz48cmVjdCB4PSI4NzUiIHk9IjM1MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjI3IiByeD0iMyIgZmlsbD0iI2Q1ZjdmZiIgb3BhY2l0eT0iLjc3Ii8+PHJlY3QgeD0iODc1IiB5PSIzOTMiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgcng9IjMiIGZpbGw9IiNkNWY3ZmYiIG9wYWNpdHk9Ii43NyIvPjxwYXRoIGQ9Ik05MCAxNTcgTDE5NSAxMTcgTDI5OCAxNTciIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMDQgMTAxIEw0MjAgNjIgTDUzNSAxMDEiIHN0cm9rZT0iIzE4OGM2OSIgc3Ryb2tlLXdpZHRoPSIxNiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik02MCA0NDIgUTI3MCAzNzIgNDcwIDQ0MCBUMTAwMCA0MzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkOGQ2ZCIgc3Ryb2tlLXdpZHRoPSIxMyIvPjxyZWN0IHg9Ijc1IiB5PSIzOTUiIHdpZHRoPSIxNCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzc3NjE0YyIvPjxjaXJjbGUgY3g9IjgzIiBjeT0iMzgzIiByPSI0MyIgZmlsbD0iIzFmOWU3MiIvPjxyZWN0IHg9IjkyNSIgeT0iMzk3IiB3aWR0aD0iMTQiIGhlaWdodD0iNjUiIGZpbGw9IiM3NzYxNGMiLz48Y2lyY2xlIGN4PSI5MzMiIGN5PSIzODUiIHI9IjQzIiBmaWxsPSIjMWY5ZTcyIi8+PHJlY3QgeD0iMzI1IiB5PSIyMTgiIHdpZHRoPSIzNDUiIGhlaWdodD0iMjE1IiByeD0iOCIgZmlsbD0iI2YxZjdlZSIvPjxwYXRoIGQ9Ik0yODUgMjE4IEw0OTUgOTQgTDcxMCAyMTgiIGZpbGw9IiMyNjc3NmQiLz48cGF0aCBkPSJNNDA1IDE2MiBMNTUwIDE2MiBMNTk1IDIwMyBMNDU1IDIwM1oiIGZpbGw9IiMyYTcxOTAiIHN0cm9rZT0iI2I0ZWFmMiIgc3Ryb2tlLXdpZHRoPSI3Ii8+PHJlY3QgeD0iNDcwIiB5PSIzMTAiIHdpZHRoPSI3NSIgaGVpZ2h0PSIxMjMiIGZpbGw9IiM3N2I2YjYiLz48L3N2Zz4=" alt="A better building starts with a better plan" style="height:195px"><div class="fc-body"><strong>A better building starts with a better plan</strong></div></div>""",unsafe_allow_html=True)
-    st.header("Register a Building")
-    st.write("Enter a building profile to generate an explainable retrofit assessment.")
-    with st.form("add_building"):
-        x,y=st.columns(2)
-        with x:
-            name=st.text_input("Building name",placeholder="e.g. Al Noor Residence")
-            kind=st.selectbox("Building type",["Residential apartment","Residential villa","Mixed use","Commercial"])
-            age=st.number_input("Building age (years)",0,100,18)
-            kwh=st.number_input("Monthly electricity use (kWh)",100,100000,6000,step=100)
-            area=st.number_input("Roof area (m²)",20,20000,300,step=10)
-        with y:
-            roof=st.selectbox("Roof condition",["Dark / high heat absorption","Moderate","Reflective / cool roof"])
-            insulation=st.selectbox("Insulation",["Poor","Average","Good"])
-            heat=st.selectbox("Heat exposure",["High","Medium","Low"])
-            flood=st.selectbox("Flood exposure",["Medium","Low","High"])
-            occupants=st.number_input("Number of occupants",1,2000,25)
-        if st.form_submit_button("🌿 Analyze & register building",type="primary",use_container_width=True):
-            if not name.strip():st.error("Please enter a building name.")
+st.markdown("""
+<div class="hero">
+    <div class="eyebrow">
+        SUSTAINABLE CITIES • SMART FUNDING • GREEN JOBS
+    </div>
+    <h1>RIZQ</h1>
+    <p>
+        AI-Assisted Climate Retrofit Funding & Green Jobs Platform
+    </p>
+    <span class="chip">Explainable prioritization</span>
+    <span class="chip">Blended finance</span>
+    <span class="chip">Verified impact workflow</span>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="notice">
+    <b>ACADEMIC RESEARCH PROTOTYPE</b> —
+    All building records, funding amounts, workers and
+    impact estimates are synthetic. The assessment engine
+    uses illustrative rules, not a trained AI model.
+    No real financing, certification or verified
+    environmental impact is provided.
+</div>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# COMMAND CENTER
+# ==========================================
+
+if page == "Command Center":
+
+    st.title("Climate Retrofit Command Center")
+    st.markdown(
+        '<div class="section-note">'
+        'A unified view of sustainable buildings, '
+        'retrofit investments and green employment.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    df = assessment_table()
+
+    total_budget = sum(
+        b["Budget"] for b in st.session_state.buildings
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric("Buildings assessed", len(df))
+    c2.metric("Projects funded", len(st.session_state.projects))
+    c3.metric("Potential project budgets", money(total_budget))
+    c4.metric("Green workers", len(st.session_state.workers))
+
+    st.divider()
+
+    st.subheader("Explore RIZQ Solutions")
+
+    image_columns = st.columns(4)
+
+    image_items = [
+        ("Smart Cities", "city.svg"),
+        ("Building Retrofit", "retrofit.svg"),
+        ("Solar Energy", "solar.svg"),
+        ("Green Jobs", "workers.svg")
+    ]
+
+    for col, (title, filename) in zip(
+        image_columns, image_items
+    ):
+        with col:
+            show_image(filename)
+            st.markdown(f"**{title}**")
+
+    st.divider()
+
+    left, right = st.columns([1.5, 1])
+
+    with left:
+        st.subheader("Building Priority Ranking")
+
+        chart = px.bar(
+            df,
+            x="Building",
+            y="Priority score",
+            color="Priority score",
+            color_continuous_scale="Greens",
+            title="Illustrative retrofit priority"
+        )
+
+        chart.update_layout(
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            xaxis_tickangle=-20
+        )
+
+        st.plotly_chart(chart, use_container_width=True)
+
+    with right:
+        st.subheader("Building Portfolio")
+
+        types = pd.DataFrame(
+            st.session_state.buildings
+        )["Type"].value_counts().reset_index()
+
+        types.columns = ["Type", "Count"]
+
+        pie = px.pie(
+            types,
+            names="Type",
+            values="Count",
+            hole=0.58,
+            color_discrete_sequence=px.colors.sequential.Greens
+        )
+
+        st.plotly_chart(pie, use_container_width=True)
+
+    st.subheader("Retrofit Opportunity Overview")
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+# ==========================================
+# ADD BUILDING
+# ==========================================
+
+elif page == "Add Building":
+
+    st.title("Register a Building")
+    st.write(
+        "Create a synthetic building profile for "
+        "retrofit assessment."
+    )
+
+    show_image("city.svg")
+
+    with st.form("add_building_form"):
+
+        name = st.text_input(
+            "Building name",
+            placeholder="Example: Sustainable Innovation Center"
+        )
+
+        kind = st.selectbox(
+            "Building type",
+            [
+                "Residential",
+                "Commercial",
+                "Education",
+                "Healthcare",
+                "Government",
+                "Industrial"
+            ]
+        )
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+            area = st.number_input(
+                "Floor area (m²)",
+                min_value=100,
+                value=5000
+            )
+
+            energy = st.number_input(
+                "Annual electricity consumption (kWh)",
+                min_value=0,
+                value=900000
+            )
+
+        with c2:
+            age = st.number_input(
+                "Building age (years)",
+                min_value=0,
+                value=15
+            )
+
+            budget = st.number_input(
+                "Available retrofit budget (AED)",
+                min_value=0,
+                value=500000,
+                step=50000
+            )
+
+        solar = st.checkbox(
+            "Building is suitable for solar assessment",
+            value=True
+        )
+
+        submitted = st.form_submit_button(
+            "Add building",
+            type="primary"
+        )
+
+    if submitted:
+        if not name.strip():
+            st.error("Please enter a building name.")
+        elif any(
+            b["Building"].lower() == name.strip().lower()
+            for b in st.session_state.buildings
+        ):
+            st.error("A building with this name already exists.")
+        else:
+            st.session_state.buildings.append({
+                "Building": name.strip(),
+                "Type": kind,
+                "Area": area,
+                "Energy": energy,
+                "Age": age,
+                "Budget": budget,
+                "Solar": solar,
+                "Status": "Assessment ready"
+            })
+
+            st.success("Building successfully added!")
+
+
+# ==========================================
+# ASSESSMENT
+# ==========================================
+
+elif page == "AI-Assisted Assessment":
+
+    st.title("AI-Assisted Retrofit Assessment")
+    st.write(
+        "Transparent rule-based screening for "
+        "building retrofit opportunities."
+    )
+
+    show_image("retrofit.svg")
+
+    names = [
+        b["Building"] for b in st.session_state.buildings
+    ]
+
+    selected = st.selectbox("Select building", names)
+
+    building = next(
+        b for b in st.session_state.buildings
+        if b["Building"] == selected
+    )
+
+    result = calculate_assessment(building)
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric(
+        "Priority score",
+        f'{result["Priority"]}/100'
+    )
+
+    c2.metric(
+        "Energy intensity",
+        f'{result["Intensity"]} kWh/m²'
+    )
+
+    c3.metric(
+        "Illustrative energy reduction",
+        f'{result["SavingRate"]:.0%}'
+    )
+
+    st.progress(result["Priority"] / 100)
+
+    st.subheader("Suggested Retrofit Measures")
+
+    measures = [
+        "High-efficiency HVAC upgrades",
+        "LED lighting and occupancy sensors",
+        "Building energy monitoring",
+        "Improved insulation and glazing"
+    ]
+
+    if building["Solar"]:
+        measures.append("Rooftop solar feasibility study")
+
+    for item in measures:
+        st.write("✓", item)
+
+    st.subheader("Explainable Decision")
+
+    st.info(
+        f"{selected} received a priority score of "
+        f'{result["Priority"]}/100 based on its energy '
+        "intensity, building age, solar suitability "
+        "and indicative budget. This is an illustrative "
+        "screening score, not an AI prediction."
+    )
+
+    st.metric(
+        "Potential annual electricity savings",
+        f'{result["EnergySaved"]:,.0f} kWh'
+    )
+
+    st.caption(
+        "Actual savings require an energy audit, "
+        "engineering design and measured baseline."
+    )
+
+
+# ==========================================
+# FUNDING STUDIO
+# ==========================================
+
+elif page == "Funding Studio":
+
+    st.title("Smart Funding Studio")
+    st.write(
+        "Explore illustrative blended-finance scenarios "
+        "for building retrofit projects."
+    )
+
+    show_image("solar.svg")
+
+    selected = st.selectbox(
+        "Select building",
+        [b["Building"] for b in st.session_state.buildings]
+    )
+
+    building = next(
+        b for b in st.session_state.buildings
+        if b["Building"] == selected
+    )
+
+    cost = st.number_input(
+        "Estimated retrofit cost (AED)",
+        min_value=10000,
+        value=int(max(building["Budget"], 10000)),
+        step=10000
+    )
+
+    grant_pct = st.slider(
+        "Grant contribution (%)",
+        0, 80, 30
+    )
+
+    loan_pct = st.slider(
+        "Green loan contribution (%)",
+        0, 90, 45
+    )
+
+    if grant_pct + loan_pct > 100:
+        st.error(
+            "Grant and loan contributions cannot exceed 100%."
+        )
+    else:
+        grant = cost * grant_pct / 100
+        loan = cost * loan_pct / 100
+        owner = cost - grant - loan
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("Grant", money(grant))
+        c2.metric("Green loan", money(loan))
+        c3.metric("Owner contribution", money(owner))
+
+        finance_df = pd.DataFrame({
+            "Source": [
+                "Grant",
+                "Green loan",
+                "Building owner"
+            ],
+            "Amount": [grant, loan, owner]
+        })
+
+        fig = px.pie(
+            finance_df,
+            names="Source",
+            values="Amount",
+            hole=0.55,
+            color_discrete_sequence=[
+                "#176a4d", "#66a98b", "#c6e7d6"
+            ]
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        if st.button(
+            "Save simulated funding scenario",
+            type="primary"
+        ):
+            st.session_state.projects.append({
+                "Building": selected,
+                "Cost": cost,
+                "Grant": grant,
+                "Loan": loan,
+                "Owner": owner,
+                "Date": str(date.today()),
+                "Status": "Simulated — not funded"
+            })
+
+            st.success(
+                "Funding scenario saved in this session."
+            )
+
+    st.caption(
+        "No grant, loan or financial eligibility "
+        "is approved or offered by this prototype."
+    )
+
+
+# ==========================================
+# GREEN JOBS
+# ==========================================
+
+elif page == "Green Jobs & Workers":
+
+    st.title("Green Jobs & Workforce")
+    st.write(
+        "Connect retrofit activities with "
+        "the skills needed for implementation."
+    )
+
+    show_image("workers.svg")
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric(
+        "Registered workers",
+        len(st.session_state.workers)
+    )
+
+    c2.metric(
+        "Available workers",
+        sum(
+            1 for w in st.session_state.workers
+            if w["Available"]
+        )
+    )
+
+    c3.metric(
+        "Skill categories",
+        len(set(
+            w["Skill"] for w in st.session_state.workers
+        ))
+    )
+
+    st.subheader("Workforce Directory")
+
+    st.dataframe(
+        pd.DataFrame(st.session_state.workers),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.subheader("Register a Green Worker")
+
+    with st.form("worker_form"):
+
+        worker_name = st.text_input("Worker name")
+
+        skill = st.selectbox(
+            "Specialization",
+            [
+                "Solar PV",
+                "HVAC",
+                "Energy Auditing",
+                "Building Automation",
+                "Electrical Retrofit",
+                "Insulation"
+            ]
+        )
+
+        available = st.checkbox(
+            "Available for assignments",
+            value=True
+        )
+
+        if st.form_submit_button(
+            "Add worker",
+            type="primary"
+        ):
+            if worker_name.strip():
+                st.session_state.workers.append({
+                    "Name": worker_name.strip(),
+                    "Skill": skill,
+                    "Available": available
+                })
+
+                st.success("Worker registered.")
             else:
-                b=dict(id=f'RZQ-{len(st.session_state.buildings)+1:03d}',name=name.strip(),kind=kind,age=age,kwh=kwh,area=area,roof=roof,insulation=insulation,heat=heat,flood=flood,occupants=occupants,status="Assessed",funded=0,worker="",verified=False,post_kwh=0)
-                result=assess(b);b["score"]=result["score"];st.session_state.buildings.append(b);st.session_state.last_assessment=b["id"]
-                st.success(f'{b["id"]} created. Priority score: {result["score"]}/100. Open AI-Assisted Assessment to see the full explanation.')
+                st.error("Enter a worker name.")
 
-elif page=="AI-Assisted Assessment":
-    st.header("Explainable Retrofit Assessment")
-    buildings=st.session_state.buildings
-    ids=[b["id"] for b in buildings]
-    chosen=st.selectbox("Select a building",ids,index=ids.index(st.session_state.last_assessment) if st.session_state.last_assessment in ids else 0,format_func=lambda i:label(get_building(i)))
-    b=get_building(chosen);res=assess(b)
-    l,r=st.columns([1,2])
-    with l:
-        priority="VERY HIGH" if res["score"]>=75 else "HIGH" if res["score"]>=55 else "MODERATE" if res["score"]>=35 else "LOW"
-        st.markdown(f'<div class="score"><h3>Retrofit Priority Score</h3><strong>{res["score"]}</strong><span>/100</span><h3>{priority} PRIORITY</h3><p>Transparent weighted assessment, not automated funding approval.</p></div>',unsafe_allow_html=True)
-    with r:
-        st.subheader("Recommended retrofit package")
-        for i,rec in enumerate(res["recommendations"],1):st.markdown(f'**{i}. {rec}**')
-        st.divider()
-        a,c=st.columns(2);a.metric("Illustrative retrofit cost",money(res["cost"]));c.metric("Estimated annual energy reduction",f'{res["saving_pct"]}%')
-        a,c=st.columns(2);a.metric("Estimated annual savings",f'{res["annual_kwh"]:,} kWh');c.metric("Estimated CO₂ avoided",f'{res["annual_co2_t"]} t/year')
-    st.subheader("Why this score?")
-    factors=pd.DataFrame([{"Factor":k,"Factor value":round(v,1),"Weight":f'{res["weights"][k]*100:.0f}%',"Contribution":round(v*res["weights"][k],1)} for k,v in res["factors"].items()])
-    st.dataframe(factors,use_container_width=True,hide_index=True)
-    st.plotly_chart(px.bar(factors,x="Factor",y="Contribution",color="Factor",color_discrete_sequence=["#0f654a","#3f916c","#7fbb96","#b2d9bd","#204b47"]),use_container_width=True)
-    st.caption("Illustrative weights: climate 30%, energy 25%, suitability 20%, financial efficiency 15%, social impact 10%. Financial efficiency is a proxy. Results are educational estimates, not an engineering audit.")
+    st.caption(
+        "All worker profiles are fictional "
+        "demonstration records."
+    )
 
-elif page=="Funding Studio":
-    st.markdown("""<div class="feature-card" style="margin-bottom:20px"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2I4ZTZmZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2VmZjlmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iMTI1IiB5PSIyMDUiIHdpZHRoPSI3NTUiIGhlaWdodD0iMjQwIiByeD0iMTgiIGZpbGw9IiNlZGY3ZjQiLz48cGF0aCBkPSJNOTAgMjE1IEw1MjAgMTAwIEw5MjAgMjE1IiBmaWxsPSIjMjY2Yjc2Ii8+PHBhdGggZD0iTTE4NSAyMTAgTDUxMCAxMjcgTDgyMyAyMTAiIGZpbGw9IiMxNjRkNmQiLz48cGF0aCBkPSJNMjU1IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTMzMiAxNjAgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik00MDkgMTYwIGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNDg2IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTU2MyAxNjAgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik02NDAgMTYwIGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNzE3IDE2MCBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTIzNSAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik0zMTIgMTk1IGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzg5IDE5NSBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTQ2NiAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik01NDMgMTk1IGw2NSAwIDIwIDI2IC02OCAweiIgZmlsbD0iIzM5OGViNyIgc3Ryb2tlPSIjYzlmMGY5IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNjIwIDE5NSBsNjUgMCAyMCAyNiAtNjggMHoiIGZpbGw9IiMzOThlYjciIHN0cm9rZT0iI2M5ZjBmOSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTY5NyAxOTUgbDY1IDAgMjAgMjYgLTY4IDB6IiBmaWxsPSIjMzk4ZWI3IiBzdHJva2U9IiNjOWYwZjkiIHN0cm9rZS13aWR0aD0iNCIvPjxyZWN0IHg9IjIwMCIgeT0iMzE1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9IiM3YmJhYzAiLz48cmVjdCB4PSI2ODAiIHk9IjMxNSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSIjN2JiYWMwIi8+PC9zdmc+" alt="Invest in measurable climate upgrades" style="height:195px"><div class="fc-body"><strong>Invest in measurable climate upgrades</strong></div></div>""",unsafe_allow_html=True)
-    st.header("Blended Climate Funding Studio")
-    st.write("Simulate funding allocations from public budgets, corporate ESG sponsors and NGO grants.")
-    c=st.columns(3)
-    for i,(source,amount) in enumerate(st.session_state.funds.items()):c[i].metric(source,money(amount))
-    choices=[x for x in st.session_state.buildings if not x["verified"]]
-    if choices:
-        with st.form("fund_project"):
-            chosen=st.selectbox("Eligible project",[x["id"] for x in choices],format_func=lambda i:label(get_building(i)))
-            source=st.selectbox("Funding source",list(st.session_state.funds))
-            suggested=max(1000,assess(get_building(chosen))["cost"]-get_building(chosen)["funded"])
-            amount=st.number_input("Simulated allocation (AED)",min_value=1000.0,max_value=1000000.0,value=float(min(suggested,1000000)),step=1000.0)
-            if st.form_submit_button("Approve simulated funding",type="primary"):
-                b=get_building(chosen)
-                if amount>st.session_state.funds[source]:st.error("Insufficient funds in the selected source.")
-                elif b["funded"]+amount>assess(b)["cost"]:st.error("Allocation exceeds the illustrative project cost. Reduce the amount.")
-                else:
-                    st.session_state.funds[source]-=amount;b["funded"]+=amount;b["status"]="Funding approved";st.success(f'{money(amount)} allocated to {b["name"]} (simulated).')
-    st.subheader("Funding ledger")
-    st.dataframe(pd.DataFrame([{"Project":x["name"],"Estimated cost":money(assess(x)["cost"]),"Funded":money(x["funded"]),"Funding gap":money(max(0,assess(x)["cost"]-x["funded"]))} for x in st.session_state.buildings]),use_container_width=True,hide_index=True)
 
-elif page=="Green Jobs & Workers":
-    st.markdown("""<div class="feature-card" style="margin-bottom:20px"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDU1MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2U0ZjRlNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Y4ZmNmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJnbGFzcyIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjNmViNGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc1ZTc2Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxlYWYiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzczYzZhMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEzODQ2MyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjU1MCIgZmlsbD0idXJsKCNza3kpIi8+PGNpcmNsZSBjeD0iODE1IiBjeT0iMTEyIiByPSI2MiIgZmlsbD0iI2ZmZjZjNiIgb3BhY2l0eT0iLjg1Ii8+PHBhdGggZD0iTTAgNDEwIFEyMjAgMzMwIDQ5MCA0MDUgVDEwMDAgMzgwIFY1NTAgSDAiIGZpbGw9IiNhN2RmY2IiLz48cGF0aCBkPSJNMCA0NjIgUTI5MCAzOTkgNTgwIDQ2NCBUMTAwMCA0NDIgVjU1MCBIMCIgZmlsbD0iIzVjYjg5NiIgb3BhY2l0eT0iLjY1Ii8+PHJlY3QgeD0iOTUiIHk9IjI0NSIgd2lkdGg9IjgxMCIgaGVpZ2h0PSIyMTAiIHJ4PSIxOCIgZmlsbD0iI2QyZTdlMiIvPjxyZWN0IHg9IjE3MCIgeT0iMTY1IiB3aWR0aD0iNjQwIiBoZWlnaHQ9Ijk1IiByeD0iMTYiIGZpbGw9IiM2NWE2YWQiLz48Y2lyY2xlIGN4PSIzMTAiIGN5PSIyNDgiIHI9IjYyIiBmaWxsPSIjZTZhZDgwIi8+PHBhdGggZD0iTTIzMCAyNTAgUTMxMCAxNzUgMzkwIDI1MCIgZmlsbD0iI2Y2Yzk0OSIvPjxyZWN0IHg9IjIwNiIgeT0iMzEyIiB3aWR0aD0iMjA4IiBoZWlnaHQ9IjE4MiIgcng9Ijc1IiBmaWxsPSIjMWM2Zjc4Ii8+PHBhdGggZD0iTTI1OCAzNDggTDMxMCAzODUgTDM2MiAzNDgiIHN0cm9rZT0iI2U5ZjlmMiIgc3Ryb2tlLXdpZHRoPSIxNiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjU0MCIgY3k9IjI0OCIgcj0iNjIiIGZpbGw9IiNlNmFkODAiLz48cGF0aCBkPSJNNDYwIDI1MCBRNTQwIDE3NSA2MjAgMjUwIiBmaWxsPSIjZjZjOTQ5Ii8+PHJlY3QgeD0iNDM2IiB5PSIzMTIiIHdpZHRoPSIyMDgiIGhlaWdodD0iMTgyIiByeD0iNzUiIGZpbGw9IiMyNTdlNjkiLz48cGF0aCBkPSJNNDg4IDM0OCBMNTQwIDM4NSBMNTkyIDM0OCIgc3Ryb2tlPSIjZTlmOWYyIiBzdHJva2Utd2lkdGg9IjE2IiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Skills powering sustainable cities" style="height:195px"><div class="fc-body"><strong>Skills powering sustainable cities</strong></div></div>""",unsafe_allow_html=True)
-    st.header("Certified Green Workers & Assignment")
-    st.dataframe(pd.DataFrame(WORKERS).rename(columns={"name":"Worker","skill":"Specialty","certified":"Demo certification"}),use_container_width=True,hide_index=True)
-    st.caption("Worker profiles and certifications are simulated; no real credentials are issued or checked.")
-    eligible=[b for b in st.session_state.buildings if b["funded"]>0 and not b["verified"]]
-    if not eligible:st.info("Fund a project in Funding Studio to assign a worker.")
+# ==========================================
+# IMPACT VERIFICATION
+# ==========================================
+
+elif page == "Impact Verification":
+
+    st.title("Impact Measurement & Verification")
+    st.write(
+        "Compare an illustrative baseline with "
+        "a post-retrofit consumption scenario."
+    )
+
+    show_image("solar.svg")
+
+    selected = st.selectbox(
+        "Select building",
+        [b["Building"] for b in st.session_state.buildings]
+    )
+
+    building = next(
+        b for b in st.session_state.buildings
+        if b["Building"] == selected
+    )
+
+    baseline = float(building["Energy"])
+
+    measured = st.number_input(
+        "Post-retrofit annual electricity (kWh)",
+        min_value=0.0,
+        value=float(round(baseline * 0.77)),
+        step=1000.0
+    )
+
+    saved = baseline - measured
+
+    reduction = (
+        saved / baseline * 100 if baseline > 0 else 0
+    )
+
+    avoided = saved * 0.40 / 1000
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric(
+        "Electricity difference",
+        f"{saved:,.0f} kWh"
+    )
+
+    c2.metric(
+        "Change from baseline",
+        f"{reduction:.1f}%"
+    )
+
+    c3.metric(
+        "Illustrative CO₂ difference",
+        f"{avoided:,.1f} t"
+    )
+
+    comparison = pd.DataFrame({
+        "Scenario": ["Baseline", "Post-retrofit"],
+        "Electricity (kWh)": [baseline, measured]
+    })
+
+    fig = px.bar(
+        comparison,
+        x="Scenario",
+        y="Electricity (kWh)",
+        color="Scenario",
+        color_discrete_sequence=[
+            "#a9c8bb", "#176a4d"
+        ]
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.warning(
+        "This is a demonstration calculation, not "
+        "independently verified impact. Real verification "
+        "requires metered data, normalization for weather "
+        "and occupancy, and an approved M&V methodology."
+    )
+
+
+# ==========================================
+# REPORTS
+# ==========================================
+
+elif page == "Projects & Reports":
+
+    st.title("Projects & Reports")
+    st.write(
+        "Review building assessments and "
+        "saved funding scenarios."
+    )
+
+    df = assessment_table()
+
+    st.subheader("Building Assessment Report")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.download_button(
+        "Download assessment CSV",
+        data=df.to_csv(index=False).encode("utf-8"),
+        file_name="RIZQ_Building_Assessment.csv",
+        mime="text/csv"
+    )
+
+    st.subheader("Funding Scenarios")
+
+    if st.session_state.projects:
+        projects_df = pd.DataFrame(
+            st.session_state.projects
+        )
+
+        st.dataframe(
+            projects_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.download_button(
+            "Download funding scenarios CSV",
+            data=projects_df.to_csv(
+                index=False
+            ).encode("utf-8"),
+            file_name="RIZQ_Funding_Scenarios.csv",
+            mime="text/csv"
+        )
     else:
-        with st.form("assign_worker"):
-            chosen=st.selectbox("Funded project",[x["id"] for x in eligible],format_func=lambda i:label(get_building(i)))
-            worker=st.selectbox("Worker",[x["name"] for x in WORKERS])
-            if st.form_submit_button("Assign worker",type="primary"):
-                w=next(x for x in WORKERS if x["name"]==worker)
-                if not w["certified"]:st.error("Assignment rejected: this worker is not marked as certified in the demo.")
-                else:
-                    b=get_building(chosen);b["worker"]=worker;b["status"]="Worker assigned";st.success(f'{worker} assigned to {b["name"]}.')
-    st.subheader("Current assignments")
-    st.dataframe(pd.DataFrame([{"Project":x["name"],"Worker":x["worker"] or "Unassigned","Status":x["status"]} for x in st.session_state.buildings]),use_container_width=True,hide_index=True)
+        st.info(
+            "No funding scenarios saved yet. "
+            "Create one in Funding Studio."
+        )
 
-elif page=="Impact Verification":
-    st.header("Completion Evidence & Verified Impact Record")
-    chosen=st.selectbox("Project",[x["id"] for x in st.session_state.buildings],format_func=lambda i:label(get_building(i)))
-    b=get_building(chosen)
-    if b["verified"]:
-        st.success("This project is verified within the simulated prototype workflow.")
-    elif not b["worker"]:st.warning("Assign a certified demo worker before submitting verification evidence.")
-    else:
-        st.write(f'**Assigned worker:** {b["worker"]}')
-        with st.form("verify"):
-            st.markdown("#### Worker completion evidence")
-            photo=st.file_uploader("Optional demonstration photo (JPG/PNG)",type=["jpg","jpeg","png"])
-            evidence=st.checkbox("Worker completion evidence reviewed")
-            inspection=st.checkbox("Inspector approval (demo)")
-            meter=st.number_input("Post-retrofit monthly electricity (kWh)",min_value=1,max_value=int(b["kwh"]*2),value=max(1,int(b["kwh"]*.80)))
-            st.caption(f'Baseline: {b["kwh"]:,} kWh/month. Only lower values can demonstrate energy savings.')
-            if st.form_submit_button("Verify project & generate record",type="primary"):
-                if not evidence or not inspection:st.error("Both evidence review and inspector approval must be checked.")
-                elif meter>=b["kwh"]:st.error("Post-retrofit consumption must be lower than the baseline for a positive savings record.")
-                else:
-                    b["post_kwh"]=meter;b["verified"]=True;b["status"]="Verified"
-                    st.session_state.evidence[b["id"]]={"evidence_reviewed":True,"inspector_approved":True,"photo_uploaded":bool(photo),"verification_date":str(date.today())}
-                    st.success("Project verified in the demo. The impact record is available below.")
-    if b["verified"]:
-        baseline=b["kwh"];after=b["post_kwh"] or round(baseline*.8)
-        saved=max(0,baseline-after);pct=100*saved/baseline
-        st.subheader(f'Verified Impact Record • {b["id"]}')
-        c=st.columns(4);c[0].metric("Baseline",f'{baseline:,} kWh/mo');c[1].metric("After",f'{after:,} kWh/mo');c[2].metric("Reduction",f'{pct:.1f}%');c[3].metric("CO₂ avoided (estimate)",f'{saved*12*.0004:.2f} t/yr')
-        chart=pd.DataFrame({"Period":["Before retrofit","After retrofit"],"kWh per month":[baseline,after]})
-        st.plotly_chart(px.bar(chart,x="Period",y="kWh per month",color="Period",color_discrete_sequence=["#193c43","#70b989"]),use_container_width=True)
-        csv=f'Project ID,{b["id"]}\nBuilding,{b["name"]}\nBaseline monthly kWh,{baseline}\nPost retrofit monthly kWh,{after}\nReduction percent,{pct:.1f}\nEstimated annual CO2 avoided t,{saved*12*.0004:.2f}\nVerification type,Simulated academic prototype\n'
-        st.download_button("⬇ Download impact record (CSV)",data=csv,file_name=f'{b["id"]}_impact_record.csv',mime="text/csv")
-        st.caption("The term ‘Verified’ describes a simulated workflow; it is not third-party certification or a carbon credit.")
 
-elif page=="Projects & Reports":
-    st.header("Retrofit Project Portfolio")
-    records=[]
-    for b in st.session_state.buildings:
-        res=assess(b)
-        records.append({"ID":b["id"],"Building":b["name"],"Priority":b["score"],"Status":b["status"],"Estimated cost (AED)":res["cost"],"Funded (AED)":b["funded"],"Worker":b["worker"] or "—","Verified":b["verified"]})
-    df=pd.DataFrame(records)
-    st.dataframe(df,use_container_width=True,hide_index=True)
-    st.download_button("⬇ Download project portfolio (CSV)",data=df.to_csv(index=False),file_name="RIZQ_project_portfolio.csv",mime="text/csv")
-    st.subheader("Portfolio analytics")
-    c=st.columns(3)
-    c[0].metric("Total simulated funding used",money(sum(x["funded"] for x in st.session_state.buildings)))
-    c[1].metric("Verified projects",sum(x["verified"] for x in st.session_state.buildings))
-    c[2].metric("Average priority",f'{df["Priority"].mean():.0f}/100')
+# ==========================================
+# METHODOLOGY
+# ==========================================
 
-else:
-    st.header("Methodology, Architecture & Test Plan")
-    st.markdown("""**INT305 software-engineering workflow:** Register building → Calculate transparent priority score → Recommend retrofit package → Approve simulated funding → Assign certified worker → Submit evidence → Verify → Export impact record.
+elif page == "Methodology & Testing":
 
-**User roles in the proposed full system:** Resident / Building Owner, City / NGO / ESG Sponsor, Certified Worker, Inspector / Verifier, and Administrator. The student demo models their actions in separate workflow pages; it does **not** implement secure multi-user login or production authorization.
+    st.title("Methodology & Testing")
 
-**Scoring weights:** Climate vulnerability 30%, energy need 25%, retrofit suitability 20%, financial efficiency 15%, social impact 10%. Inputs are normalized to 0–100. The current financial-efficiency factor is a heuristic proxy, not a full cost-benefit calculation.
+    st.subheader("Prototype Architecture")
 
-**Technology:** Streamlit + Python + Pandas + Plotly. Data is stored in session memory for the demonstration. Production architecture could use a FastAPI backend, a persistent SQL database, secure hashed-password authentication and role-based permissions.
+    st.markdown("""
+    **Presentation layer:** Streamlit dashboard
 
-**Estimation assumptions:** Energy-saving percentages and retrofit costs are illustrative formulas. The demo uses AED 0.30/kWh and 0.4 kg CO₂/kWh solely as adjustable teaching assumptions. They are not validated tariffs or official emission factors.
+    **Application layer:** Python business rules
 
-**Future AI upgrade:** Train and validate a supervised model on real, permissioned retrofit outcomes. Until then, describe this prototype as an *AI-assisted concept with a rule-based decision engine*, not as a trained predictive model.
-""")
-    st.subheader("Manual acceptance tests")
-    tests=[("T1","Create a high-risk, high-energy building","High priority with explanation"),("T2","Assess efficient low-risk building","Lower priority"),("T3","Leave building name blank","Validation error"),("T4","Allocate simulated sponsor funding","Balance and project status update"),("T5","Assign Trainee Demo","Assignment rejected"),("T6","Assign certified worker","Assignment succeeds"),("T7","Verify with both checks and lower meter reading","Impact record generated"),("T8","Enter post-meter value higher than baseline","Validation error"),("T9","Download project CSV","Portfolio exported")]
-    st.dataframe(pd.DataFrame(tests,columns=["Test ID","Action","Expected outcome"]),use_container_width=True,hide_index=True)
-    st.info("For a production-ready version, add persistent storage, true role-based authentication, audit logs, automated tests and validated building/energy datasets.")
+    **Assessment layer:** Transparent weighted scoring
+
+    **Finance layer:** User-controlled scenario calculations
+
+    **Data layer:** Synthetic session-state records
+
+    **Visualization:** Plotly charts and local SVG assets
+    """)
+
+    st.subheader("Current Prototype Capabilities")
+
+    st.write("✓ Register synthetic building profiles")
+    st.write("✓ Rank retrofit opportunities")
+    st.write("✓ Explain assessment scores")
+    st.write("✓ Simulate blended financing")
+    st.write("✓ Register fictional green workers")
+    st.write("✓ Compare energy scenarios")
+    st.write("✓ Export assessment and funding reports")
+
+    st.subheader("Important Limitations")
+
+    st.warning(
+        "The current prototype does not use a trained "
+        "machine-learning model, live building sensors, "
+        "real funding APIs, verified worker identities "
+        "or accredited impact certification."
+    )
+
+    st.subheader("Future Development")
+
+    st.markdown("""
+    - Train and validate retrofit prediction models
+      using authorized building datasets.
+    - Add persistent database storage and authentication.
+    - Integrate actual energy meter readings.
+    - Connect to approved funding programs.
+    - Introduce verified worker credentials.
+    - Add formal measurement and verification workflows.
+    """)
+
+    st.subheader("Asset Diagnostics")
+
+    for filename in [
+        "city.svg",
+        "retrofit.svg",
+        "solar.svg",
+        "workers.svg"
+    ]:
+        path = ASSETS / filename
+        if path.exists():
+            st.success(f"Found: assets/{filename}")
+        else:
+            st.error(f"Missing: assets/{filename}")
+
+
+# ==========================================
+# FOOTER
+# ==========================================
 
 st.divider()
-st.caption("RIZQ • INT305 • Academic research prototype • All displayed example data and transactions are simulated.")
+
+st.caption(
+    "RIZQ | Climate Retrofit Intelligence — "
+    "INT305 Software Engineering Academic Prototype. "
+    "All outputs are illustrative and require "
+    "real-world validation before operational use."
+)
