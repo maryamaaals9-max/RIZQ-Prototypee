@@ -1,0 +1,5 @@
+1. افتحي GitHub ثم مستودع RIZQ-Prototype.
+2. استبدلي app.py بالملف الجديد من هذا المجلد واحفظي Commit changes.
+3. تأكدي من وجود requirements.txt.
+4. افتحي رابط تطبيق Streamlit الحالي وانتظري إعادة التشغيل أو اضغطي Reboot من Manage app عند الحاجة.
+5. لا ترفعي ZIP نفسه إلى GitHub؛ ارفعي الملفات المستخرجة.
