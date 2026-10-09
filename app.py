@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 from datetime import date
+import base64
+import html
 
 # ==========================================
 # RIZQ — CLIMATE RETROFIT INTELLIGENCE
@@ -117,6 +119,58 @@ h1, h2, h3 {
 div[data-testid="stDataFrame"] {
     border-radius: 14px;
 }
+
+/* Uniform image tiles, independent of SVG dimensions */
+.rizq-image-card {
+    background: #ffffff;
+    border: 1px solid #dce9e2;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(16,43,52,.05);
+    margin-bottom: 12px;
+}
+.rizq-image-stage {
+    height: 154px;
+    background: #edf6f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+}
+.rizq-image-stage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.rizq-image-title {
+    padding: 13px 14px 15px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #153c34;
+}
+.rizq-feature-image {
+    background: #edf6f1;
+    border: 1px solid #dce9e2;
+    border-radius: 18px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    margin: 8px 0 22px;
+}
+.rizq-feature-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+@media (max-width: 768px) {
+    .hero { padding: 30px 24px; }
+    .hero h1 { font-size: 42px; }
+    .rizq-image-stage { height: 132px; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -186,18 +240,50 @@ if "workers" not in st.session_state:
 # HELPERS
 # ==========================================
 
-def show_image(filename, caption=None):
+def _svg_data_url(filename):
+    """Read only named local SVG files, for consistent HTML image sizing."""
+    allowed = {"city.svg", "retrofit.svg", "solar.svg", "workers.svg"}
+    if filename not in allowed:
+        return None
     path = ASSETS / filename
-    if path.exists() and path.stat().st_size > 20:
-        try:
-            st.image(str(path), use_container_width=True)
-        except Exception:
-            st.info(f"Image could not be displayed: {filename}")
-    else:
-        st.info(f"Image not found or empty: assets/{filename}")
+    if not path.is_file() or path.stat().st_size <= 20:
+        return None
+    try:
+        raw = path.read_bytes()
+        return "data:image/svg+xml;base64," + base64.b64encode(raw).decode("ascii")
+    except OSError:
+        return None
 
+
+def show_image(filename, caption=None):
+    """Display large feature artwork at a fixed, non-cropped height."""
+    src = _svg_data_url(filename)
+    if src:
+        st.markdown(
+            f'<div class="rizq-feature-image"><img src="{src}" '
+            f'alt="{html.escape(filename)}"></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info(f"Image missing or empty: assets/{filename}")
     if caption:
         st.caption(caption)
+
+
+def show_solution_card(title, filename):
+    """Uniform visual card: same dimensions, no image cropping."""
+    src = _svg_data_url(filename)
+    safe_title = html.escape(title)
+    if src:
+        st.markdown(
+            '<div class="rizq-image-card">'
+            f'<div class="rizq-image-stage"><img src="{src}" alt="{safe_title}"></div>'
+            f'<div class="rizq-image-title">{safe_title}</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info(f"Missing: assets/{filename}")
 
 
 def calculate_assessment(building):
@@ -370,8 +456,7 @@ if page == "Command Center":
         image_columns, image_items
     ):
         with col:
-            show_image(filename)
-            st.markdown(f"**{title}**")
+            show_solution_card(title, filename)
 
     st.divider()
 
